@@ -20,6 +20,7 @@ path = "src/client.rs"
 futures = "0.1.16"
 grpcio = "0.2.0"
 protobuf = "1.4.1"
+rand = "0.5"
 
 [build-dependencies]
 protoc-grpcio = "0.1.1"

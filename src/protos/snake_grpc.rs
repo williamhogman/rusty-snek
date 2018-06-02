@@ -25,6 +25,13 @@ const METHOD_SNAKE_PING: ::grpcio::Method<super::snake::PingRequest, super::snak
     resp_mar: ::grpcio::Marshaller { ser: ::grpcio::pb_ser, de: ::grpcio::pb_de },
 };
 
+const METHOD_SNAKE_JOIN: ::grpcio::Method<super::snake::ClientCommand, super::snake::ServerCommand> = ::grpcio::Method {
+    ty: ::grpcio::MethodType::Duplex,
+    name: "/Snake/Join",
+    req_mar: ::grpcio::Marshaller { ser: ::grpcio::pb_ser, de: ::grpcio::pb_de },
+    resp_mar: ::grpcio::Marshaller { ser: ::grpcio::pb_ser, de: ::grpcio::pb_de },
+};
+
 pub struct SnakeClient {
     client: ::grpcio::Client,
 }
@@ -51,6 +58,14 @@ impl SnakeClient {
     pub fn ping_async(&self, req: &super::snake::PingRequest) -> ::grpcio::Result<::grpcio::ClientUnaryReceiver<super::snake::PingResponse>> {
         self.ping_async_opt(req, ::grpcio::CallOption::default())
     }
+
+    pub fn join_opt(&self, opt: ::grpcio::CallOption) -> ::grpcio::Result<(::grpcio::ClientDuplexSender<super::snake::ClientCommand>, ::grpcio::ClientDuplexReceiver<super::snake::ServerCommand>)> {
+        self.client.duplex_streaming(&METHOD_SNAKE_JOIN, opt)
+    }
+
+    pub fn join(&self) -> ::grpcio::Result<(::grpcio::ClientDuplexSender<super::snake::ClientCommand>, ::grpcio::ClientDuplexReceiver<super::snake::ServerCommand>)> {
+        self.join_opt(::grpcio::CallOption::default())
+    }
     pub fn spawn<F>(&self, f: F) where F: ::futures::Future<Item = (), Error = ()> + Send + 'static {
         self.client.spawn(f)
     }
@@ -58,6 +73,7 @@ impl SnakeClient {
 
 pub trait Snake {
     fn ping(&self, ctx: ::grpcio::RpcContext, req: super::snake::PingRequest, sink: ::grpcio::UnarySink<super::snake::PingResponse>);
+    fn join(&self, ctx: ::grpcio::RpcContext, stream: ::grpcio::RequestStream<super::snake::ClientCommand>, sink: ::grpcio::DuplexSink<super::snake::ServerCommand>);
 }
 
 pub fn create_snake<S: Snake + Send + Clone + 'static>(s: S) -> ::grpcio::Service {
@@ -65,6 +81,10 @@ pub fn create_snake<S: Snake + Send + Clone + 'static>(s: S) -> ::grpcio::Servic
     let instance = s.clone();
     builder = builder.add_unary_handler(&METHOD_SNAKE_PING, move |ctx, req, resp| {
         instance.ping(ctx, req, resp)
+    });
+    let instance = s.clone();
+    builder = builder.add_duplex_streaming_handler(&METHOD_SNAKE_JOIN, move |ctx, req, resp| {
+        instance.join(ctx, req, resp)
     });
     builder.build()
 }

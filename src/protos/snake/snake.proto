@@ -2,8 +2,58 @@ syntax = "proto3";
 
 service Snake {
   rpc Ping (PingRequest) returns (PingResponse) {}
+  rpc Join (stream ClientCommand) returns (stream ServerCommand) {}
 }
 
+
+message ClientCommand {
+  oneof command {
+   DirectionCommand direction = 1; 
+  }
+}
+
+message DirectionCommand {
+  enum Direction {
+    INVALID = 0;
+    NORTH = 1;
+    SOUTH = 2;
+    WEST = 3;
+    EAST = 4;
+  }
+  Direction direction = 1;
+}
+
+enum CellContent {
+  UNKNOWN = 0;
+  BLANK = 1;
+  HEAD = 2;
+  TAIL = 3;
+  FRUIT = 4;
+  WALL = 5;
+}
+
+message CellUpdate {
+  uint32 cell = 1;
+  CellContent content = 2;
+  uint32 player = 3;
+}
+
+message ScoreBoardUpdate {
+  uint32 player = 1;
+  uint32 score = 2;
+  bool dead = 3;
+}
+
+message GameStateUpdate {
+  uint32 turn = 1;
+  repeated CellUpdate cells = 2;
+}
+
+message ServerCommand {
+  oneof command {
+    GameStateUpdate game_state_update = 1;
+  }
+}
 
 message PingRequest {
   string version = 1;
